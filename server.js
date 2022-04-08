@@ -35,8 +35,12 @@ app.get("/", (req, res) => {
 /*query() method runs the SQL query and executes the callback with all the resulting rows that match the query. It returns an array of objects, with each object representing a row of the candidates table.*/
 // Get all candidates
 app.get("/api/candidates", (req, res) => {
-  const sql = `SELECT * FROM candidates`;
-
+  const sql = `SELECT candidates.*, parties.name 
+             AS party_name 
+             FROM candidates 
+             LEFT JOIN parties 
+             ON candidates.party_id = parties.id`;
+  /* This db qurey above will all of the candidate's data but only the party's name. Notice that we're using a wildcard to return all of the column data from the candidates table. The AS keyword lets you define an alias for your data, which is particularly useful when joining tables that might have overlapping field names.*/
   db.query(sql, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -60,7 +64,12 @@ res.json({
 
 // Get a single candidate
 app.get("/api/candidate/:id", (req, res) => {
-  const sql = `SELECT * FROM candidates WHERE id = ?`;
+  const sql = `SELECT candidates.*, parties.name 
+             AS party_name 
+             FROM candidates 
+             LEFT JOIN parties 
+             ON candidates.party_id = parties.id 
+             WHERE candidates.id = ?`;
   const params = [req.params.id];
 
   db.query(sql, params, (err, row) => {
