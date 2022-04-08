@@ -33,6 +33,8 @@ app.get("/", (req, res) => {
 
 //db querys using query method ie. db.query()
 /*query() method runs the SQL query and executes the callback with all the resulting rows that match the query. It returns an array of objects, with each object representing a row of the candidates table.*/
+
+//Routes for candidates Table
 // Get all candidates
 app.get("/api/candidates", (req, res) => {
   const sql = `SELECT candidates.*, parties.name 
@@ -152,6 +154,96 @@ The params assignment contains three elements in its array that contains the use
 
 The database call logic is the same as what we previously built to create a candidate. Using the query() method, we can execute the prepared SQL statement. We send the response using the res.json() method with a success message and the user data that was used to create the new data entry.
  */
+
+//Update candidate party affiliation
+// Update a candidate's party
+app.put('/api/candidate/:id', (req, res) => {
+  // This now forces any PUT request to /api/candidate/:id to include a party_id property. Even if the intention is to remove a party affiliation by setting it to null, the party_id property is still required.
+  const errors = inputCheck(req.body, "party_id");
+
+  if (errors) {
+    res.status(400).json({ error: errors });
+    return;
+  }
+
+  const sql = `UPDATE candidates SET party_id = ? 
+               WHERE id = ?`;
+  const params = [req.body.party_id, req.params.id];
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      res.status(400).json({ error: err.message });
+      // check if a record was found
+    } else if (!result.affectedRows) {
+      res.json({
+        message: "Candidate not found",
+      });
+    } else {
+      res.json({
+        message: "success",
+        data: req.body,
+        changes: result.affectedRows,
+      });
+    }
+  });
+});
+/**
+ * This route might feel a little strange because we're using a parameter for the candidate's id (req.params.id), but the request body contains the party's id (req.body.party_id). Why mix the two? Again, we want to follow best practices for consistency and clarity. The affected row's id should always be part of the route (e.g., /api/candidate/2) while the actual fields we're updating should be part of the body.
+ 
+ */
+
+
+//Routes for parties table
+//get all parties
+app.get("/api/parties", (req, res) => {
+  const sql = `SELECT * FROM parties`;
+  db.query(sql, (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({
+      message: "success",
+      data: rows,
+    });
+  });
+});
+
+//get party by id
+app.get("/api/party/:id", (req, res) => {
+  const sql = `SELECT * FROM parties WHERE id = ?`;
+  const params = [req.params.id];
+  db.query(sql, params, (err, row) => {
+    if (err) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    res.json({
+      message: "success",
+      data: row,
+    });
+  });
+});
+//delete party by id
+app.delete("/api/party/:id", (req, res) => {
+  const sql = `DELETE FROM parties WHERE id = ?`;
+  const params = [req.params.id];
+  db.query(sql, params, (err, result) => {
+    if (err) {
+      res.status(400).json({ error: res.message });
+      // checks if anything was deleted
+    } else if (!result.affectedRows) {
+      res.json({
+        message: "Party not found",
+      });
+    } else {
+      res.json({
+        message: "deleted",
+        changes: result.affectedRows,
+        id: req.params.id,
+      });
+    }
+  });
+});
 
 // Default response for any other request (Not Found) this route is always the last route listed
 app.use((req, res) => {
